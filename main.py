@@ -3,6 +3,7 @@ from lib.LaboratoryEnvironment import *
 from lib.Metals import *
 from lib.Reaction import *
 
+
 def test_01():
     class ChangingPHBehavior(Behavior):
         def trigger(self):
@@ -14,6 +15,16 @@ def test_01():
 
         # Custom Functions
         def calculate_rate(self, pH):
+            """
+            The oxidation of iron(II) nanomolar with H2O2 in seawater
+            The equations for the reaction is:
+                d[Fe(II)]/dt = -k1[Fe(II)]
+                where
+                k1 = k * [H2O2]
+
+            Reference Paper: https://zero.sci-hub.se/1659/0dfdfe39b6002febd301fbec100dd9c6/10.1016@j.gca.2004.05.043.pdf#page=10&zoom=100,0,0
+            """
+
             import random
             from datetime import datetime
             random.seed(datetime.now().microsecond)
@@ -87,6 +98,7 @@ def test_01():
         "ph": EntityParameter(7, None),
         "temperature": EntityParameter(2000, None),
         "distance": 1,
+        # http://hyperphysics.phy-astr.gsu.edu/hbase/Tables/thrcn.html
         "conductivity": 0.024,
     }
 
@@ -94,8 +106,40 @@ def test_01():
         _parameters, _metal, _behaviors, _verbose=1
     )
 
-    _env.add_callback(EarlyStopCallback())
+    # _env.add_callback(EarlyStopCallback())
     _env.compile()
-    _env.simulate(500)
+    _env.simulate(50)
+
+
+def test_02():
+    class WaterTemperatureBehavior(Behavior):
+        def trigger(self):
+            import random
+            random_change = random.uniform(5, 10)
+            self.env.metal.parameters['temperature'].run("add", random_change)
+
+    class WaterTemperatureReaction(Reaction):
+        def react(self, _metal):
+            if _metal.parameters["temperature"].value >= _metal.parameters["boiling_point"]:
+                print("[!] Water is boiling...")
+
+    _metal = Metal({
+        "name": "Water",
+        "temperature": EntityParameter(25, WaterTemperatureReaction()),
+        "boiling_point": 100
+    })
+
+    _behaviors = Behaviors()
+    _behaviors.add("WaterTemperature", WaterTemperatureBehavior())
+
+    _parameters = {}
+
+    _env = LaboratoryEnvironment(
+        _parameters, _metal, _behaviors, _verbose=1
+    )
+    _env.compile()
+    _env.simulate(15)
+
+
 if __name__ == "__main__":
     test_01()
