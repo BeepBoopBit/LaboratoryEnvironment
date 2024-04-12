@@ -103,7 +103,7 @@ def get_test_env():
     }
 
     _env = LaboratoryEnvironment(
-        _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=1000
+        _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=50
     )
     return _env
 
@@ -112,13 +112,6 @@ def test_01():
     _env = get_test_env()
     _env.compile()
     _env.simulate(15)
-
-
-def test_01_kafka():
-    _env = get_test_env()
-    _env.compile()
-    _env.simulate_with_kafka("quickstart-events")
-
 
 if __name__ == "__main__":
     # test_01_kafka()
