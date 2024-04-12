@@ -90,7 +90,7 @@ class Behaviors:
         deletables = []
         for key in self.behaviors.keys():
             behavior = self.behaviors[key]
-            behavior.attach(_env)
+            behavior.attach(_env=_env)
             if not behavior.will_run:
                 self.pBehaviors[key] = behavior
                 deletables.append(key)

@@ -48,12 +48,12 @@ def sim_with_kafka(_env):
     kafka_env = KafkaLaboratoryEnvironment(kafka_server, topic, _env)
     _env.simulate_thread(infinite=True)
 
-    from threading import Thread
+    # from threading import Thread
     # t = Thread(target=kafka_env.create_operation)
     # t.start()
 
     kafka_env.consume_message()
-    t.join()
+    # t.join()
     _env.wait()
 
 
@@ -156,7 +156,7 @@ def test_01():
     }
 
     _env = LaboratoryEnvironment(
-        _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=100
+        _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=1000
     )
 
     # _env.add_callback(EarlyStopCallback())
@@ -169,34 +169,44 @@ def test_01():
 
 
 def test_02():
-    class WaterTemperatureBehavior(Behavior):
+    # Create a behavior
+    # Create the laboratory environment
+
+    # We want to simulate water ph level changing
+
+    class PhLevelReaction(Reaction):
+        def react(self, _metal):
+            value = _metal.parameters['ph_level'].value
+            if value > 1:
+                print("[!] Going to BASE...")
+            elif value < 1:
+                print("[!] Going Acidic...")
+            else:
+                print("[!] Going Neural...")
+
+    _metal_parameter = {
+        "ph_level": EntityParameter(1, PhLevelReaction()),
+    }
+
+    _metal = Metal(_metal_parameter)
+
+    class PhChangingBehavior(Behavior):
         def trigger(self):
             import random
-            random_change = random.uniform(5, 10)
-            self.env.metal.parameters['temperature'].run("add", random_change)
-
-    class WaterTemperatureReaction(Reaction):
-        def react(self, _metal):
-            if _metal.parameters["temperature"].value >= _metal.parameters["boiling_point"]:
-                print("[!] Water is boiling...")
-
-    _metal = Metal({
-        "name": "Water",
-        "temperature": EntityParameter(25, WaterTemperatureReaction()),
-        "boiling_point": 100
-    })
+            value = random.uniform(-1.5, 1.5)
+            self.env.metal.parameters['ph_level'].run('add', value)
 
     _behaviors = Behaviors()
-    _behaviors.add("WaterTemperature", WaterTemperatureBehavior())
-
-    _parameters = {}
+    _behaviors.add("ph_change", PhChangingBehavior())
 
     _env = LaboratoryEnvironment(
-        _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=1000
+        {}, _metal, _behaviors, _sleep_ms=1000
     )
     _env.compile()
-    _env.simulate(15)
+    sim_with_kafka(_env)
+    #_env.simulate(15)
 
 
 if __name__ == "__main__":
-    test_01()
+    # test_01()
+    test_02()
