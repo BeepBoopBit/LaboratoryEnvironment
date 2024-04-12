@@ -3,61 +3,8 @@ from lib.LaboratoryEnvironment import *
 from lib.Metals import *
 from lib.Reaction import *
 
-from kafka import KafkaConsumer
-import json
 
-
-class KafkaLaboratoryEnvironment:
-    def __init__(self, _kafka_server, _topic, _lab_env):
-        self.kafka_server = _kafka_server
-        self.topic = _topic
-        self.lab_env = _lab_env
-
-    def consume_message(self):
-        consumer = KafkaConsumer(
-            self.topic, bootstrap_servers=self.kafka_server)
-        for message in consumer:
-            message = message.value.decode('utf-8')
-            print(f"A Message from Kafka: {message}")
-
-            try:
-                message = json.loads(message)
-            except:
-                print("[!!] Invalid Message Format...continuing...")
-                continue
-            else:
-                self.lab_env.simulate_data_stream(message)
-
-    def create_operation(self):
-        from kafka import KafkaProducer
-        import time
-
-        producer = KafkaProducer(bootstrap_servers=self.kafka_server)
-        while True:
-            producer.send(
-                self.topic, b'{"parameter_name":"temperature", "operation":"add", "value":1500}')
-            time.sleep(1)
-
-
-def sim_with_kafka(_env):
-    # Kafka Server
-    kafka_server = 'localhost:9092'
-    topic = 'quickstart-events'
-
-    # Create the Kafka Environment
-    kafka_env = KafkaLaboratoryEnvironment(kafka_server, topic, _env)
-    _env.simulate_thread(infinite=True)
-
-    # from threading import Thread
-    # t = Thread(target=kafka_env.create_operation)
-    # t.start()
-
-    kafka_env.consume_message()
-    # t.join()
-    _env.wait()
-
-
-def test_01():
+def get_test_env():
     class ChangingPHBehavior(Behavior):
         def trigger(self):
             import random
@@ -108,13 +55,13 @@ def test_01():
         def react(self, _metal):
             if _metal.parameters["temperature"].value >= _metal.parameters["melting_point"]:
                 _metal.parameters["is_melting"].run("set", True)
-                print("[!] Metal is melting...")
+                self.print_event("[!] Metal is melting...")
 
     class RustingReaction(Reaction):
         def react(self, _metal):
             if _metal.parameters["rusting_level"].value >= 15:
                 _metal.parameters["is_rusting"].run("set", True)
-                print("[!] Metal is rusting...")
+                self.print_event("[!] Metal is rusting...")
 
     class EarlyStopCallback(LaboratoryCallback):
         def run(self):
@@ -158,55 +105,26 @@ def test_01():
     _env = LaboratoryEnvironment(
         _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=1000
     )
+    return _env
 
-    # _env.add_callback(EarlyStopCallback())
+
+def test_01():
+    _env = get_test_env()
     _env.compile()
-    # _env.simulate_thread(epoch=100)
-    # _env.wait()
-
-    # kafka
-    sim_with_kafka(_env)
+    _env.simulate(15)
 
 
-def test_02():
-    # Create a behavior
-    # Create the laboratory environment
-
-    # We want to simulate water ph level changing
-
-    class PhLevelReaction(Reaction):
-        def react(self, _metal):
-            value = _metal.parameters['ph_level'].value
-            if value > 1:
-                print("[!] Going to BASE...")
-            elif value < 1:
-                print("[!] Going Acidic...")
-            else:
-                print("[!] Going Neural...")
-
-    _metal_parameter = {
-        "ph_level": EntityParameter(1, PhLevelReaction()),
-    }
-
-    _metal = Metal(_metal_parameter)
-
-    class PhChangingBehavior(Behavior):
-        def trigger(self):
-            import random
-            value = random.uniform(-1.5, 1.5)
-            self.env.metal.parameters['ph_level'].run('add', value)
-
-    _behaviors = Behaviors()
-    _behaviors.add("ph_change", PhChangingBehavior())
-
-    _env = LaboratoryEnvironment(
-        {}, _metal, _behaviors, _sleep_ms=1000
-    )
+def test_01_kafka():
+    _env = get_test_env()
     _env.compile()
-    sim_with_kafka(_env)
-    #_env.simulate(15)
+    _env.simulate_with_kafka("quickstart-events")
 
 
 if __name__ == "__main__":
+    # test_01_kafka()
     # test_01()
-    test_02()
+    _env = get_test_env()
+    lab_menu = LabEnvironmentMenu(_env)
+    _env.attach_menu(lab_menu)
+    _env.compile()
+    lab_menu.run("quickstart-events", "localhost:9092")

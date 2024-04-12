@@ -3,7 +3,16 @@ from abc import ABC, abstractmethod
 
 class Reaction(ABC):
     def __init__(self):
-        pass
+        self.menu = None
+
+    def print_event(self, event):
+        if self.menu is not None:
+            self.menu.print_event(event)
+        else:
+            print(event)
+
+    def attach_menu(self, _menu):
+        self.menu = _menu
 
     @abstractmethod
     def react(self, _metal):

@@ -12,7 +12,7 @@ class Metal(ABC):
         self.parameters = _parameters
         self.verbose = 1
 
-    def compile(self, _verbose, _env):
+    def compile(self, _verbose, _env, _menu):
         """
         Attach the necessary parameters to the metal entity.
         """
@@ -21,6 +21,9 @@ class Metal(ABC):
             parameter = self.parameters[key]
             if isinstance(parameter, EntityParameter):
                 parameter.attach(self)
+                if parameter.reaction is not None:
+                    parameter.reaction.attach_menu(_menu)
+
                 print_if_verbose(
                     self.verbose,
                     "INFO",

@@ -49,6 +49,18 @@ class Behaviors:
             self.pBehaviors[_name] = self.behaviors[_name]
             del self.behaviors[_name]
 
+    def runnables(self):
+        """
+        Get all the behaviors that are set to run.
+        """
+        return self.behaviors.keys()
+
+    def pendings(self):
+        """
+        Get all the behaviors that are set to run.
+        """
+        return self.pBehaviors.keys()
+
     def add(self, _name, _behavior):
         """
         Add a behavior to the collection.
