@@ -17,6 +17,7 @@ class LaboratoryEnvironment(ABC):
         self.sleep_ms = _sleep_ms
         self.is_simulate_continue = True  # Used for Early Stop if needed
         self.callbacks = []
+        self.thread = None
 
     def compile(self):
         """
@@ -70,7 +71,66 @@ class LaboratoryEnvironment(ABC):
         """
         self.callbacks.append(_callback)
 
-    def simulate(self, epoch):
+    def simulate_data_stream(self, data):
+        """
+        Simulate the environment forever with the data stream.
+
+        Make sure the mark your behaviors as either runnable or not
+        using the set_runnable method of the Behaviors class.
+        """
+        if "operation" not in data.keys():
+            print("[!] Invalid Data Format...continuing...")
+            return
+
+        operation = data["operation"]
+        if "parameter_name" in data.keys():
+            parameter_name = data["parameter_name"]
+
+            value = None
+            if "value" not in data.keys():
+                print("[!] Invalid Data Format...continuing...")
+                return
+
+            value = data["value"]
+            self.metal.parameters[parameter_name].run(operation, value)
+            print("[!] Parameter Updated...")
+        elif "behavior_name" in data.keys():
+            behavior_name = data["behavior_name"]
+            if operation == "run":
+                self.behaviors.set_runnable(behavior_name, True)
+            elif operation == "stop":
+                self.behaviors.set_runnable(behavior_name, False)
+            elif operation == "trigger":
+                self.behaviors.trigger(behavior_name)
+            else:
+                print("[!] Invalid Operation...continuing...")
+        else:
+            print("[!] Invalid Data Format...continuing...")
+
+    def simulate_thread(self, epoch=1, infinite=False):
+        """
+        Simulate the environment in a thread
+
+        Make sure the mark your behaviors as either runnable or not
+        using the set_runnable method of the Behaviors class.
+        """
+
+        # create a thread for the data stream
+        from threading import Thread
+        simulate_thread = Thread(target=self.simulate, args=(epoch, infinite,))
+        self.thread = simulate_thread
+        simulate_thread.start()
+
+    def wait(self):
+        """
+        Wait for the thread to finish.
+        """
+        if self.thread is not None:
+            self.thread.join()
+        else:
+            print("[/] No Thread to wait for...")
+
+    def simulate(self, epoch=1, infinite=False):
         """
         Simulate the environment for a given number of epochs.
 
@@ -88,17 +148,14 @@ class LaboratoryEnvironment(ABC):
 
         # Epoch Counter
         epoch_count = 0
-        while (epoch_count < epoch) and (self.is_simulate_continue):
+        while ((epoch_count < epoch) or infinite) and (self.is_simulate_continue):
             # Logging: Epoch
             print("#"*50)
             current_time = datetime.now().strftime("%H:%M:%S")
             print(f"Epoch: {epoch_count} ({current_time})")
 
-            # Trigger each behavior
-            for key in self.behaviors.behaviors.keys():
-
-                # Will Call the Callbacks if the condition is met
-                self.behaviors.trigger(key)
+            # Run all runnable behaviors
+            self.behaviors.run()
 
             # Logging: Metal
             print(f"Metal: {self.metal}\n")

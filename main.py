@@ -3,6 +3,59 @@ from lib.LaboratoryEnvironment import *
 from lib.Metals import *
 from lib.Reaction import *
 
+from kafka import KafkaConsumer
+import json
+
+
+class KafkaLaboratoryEnvironment:
+    def __init__(self, _kafka_server, _topic, _lab_env):
+        self.kafka_server = _kafka_server
+        self.topic = _topic
+        self.lab_env = _lab_env
+
+    def consume_message(self):
+        consumer = KafkaConsumer(
+            self.topic, bootstrap_servers=self.kafka_server)
+        for message in consumer:
+            message = message.value.decode('utf-8')
+            print(f"A Message from Kafka: {message}")
+
+            try:
+                message = json.loads(message)
+            except:
+                print("[!!] Invalid Message Format...continuing...")
+                continue
+            else:
+                self.lab_env.simulate_data_stream(message)
+
+    def create_operation(self):
+        from kafka import KafkaProducer
+        import time
+
+        producer = KafkaProducer(bootstrap_servers=self.kafka_server)
+        while True:
+            producer.send(
+                self.topic, b'{"parameter_name":"temperature", "operation":"add", "value":1500}')
+            time.sleep(1)
+
+
+def sim_with_kafka(_env):
+    # Kafka Server
+    kafka_server = 'localhost:9092'
+    topic = 'quickstart-events'
+
+    # Create the Kafka Environment
+    kafka_env = KafkaLaboratoryEnvironment(kafka_server, topic, _env)
+    _env.simulate_thread(infinite=True)
+
+    from threading import Thread
+    # t = Thread(target=kafka_env.create_operation)
+    # t.start()
+
+    kafka_env.consume_message()
+    t.join()
+    _env.wait()
+
 
 def test_01():
     class ChangingPHBehavior(Behavior):
@@ -103,12 +156,16 @@ def test_01():
     }
 
     _env = LaboratoryEnvironment(
-        _parameters, _metal, _behaviors, _verbose=1
+        _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=100
     )
 
     # _env.add_callback(EarlyStopCallback())
     _env.compile()
-    _env.simulate(50)
+    # _env.simulate_thread(epoch=100)
+    # _env.wait()
+
+    # kafka
+    sim_with_kafka(_env)
 
 
 def test_02():
@@ -135,7 +192,7 @@ def test_02():
     _parameters = {}
 
     _env = LaboratoryEnvironment(
-        _parameters, _metal, _behaviors, _verbose=1
+        _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=1000
     )
     _env.compile()
     _env.simulate(15)
