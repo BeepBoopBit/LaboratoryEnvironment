@@ -253,6 +253,7 @@ class LaboratoryEnvironment(ABC):
 
         # TODO: Change this to use 'poll' instead to give more
         # contorl over the simulation and to exit safely
+        import json
         for message in consumer:
 
             # Decode the message from the kafka server
@@ -470,7 +471,7 @@ class LaboratoryCallback(ABC):
         pass
 
 
-class LabEnvironmentMenu:
+class LaboratoryEnvironmentMenu:
     def __init__(self, env):
         self.env = env
         self.event_count = 0

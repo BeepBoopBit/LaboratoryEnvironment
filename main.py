@@ -117,7 +117,7 @@ if __name__ == "__main__":
     # test_01_kafka()
     # test_01()
     _env = get_test_env()
-    lab_menu = LabEnvironmentMenu(_env)
+    lab_menu = LaboratoryEnvironmentMenu(_env)
     _env.attach_menu(lab_menu)
     _env.compile()
     lab_menu.run("quickstart-events", "localhost:9092")
