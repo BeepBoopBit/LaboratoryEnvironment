@@ -56,7 +56,7 @@ class LaboratoryEnvironment(ABC):
                 )
             else:
 
-                # Otherwise, if move on
+                # Otherwise, move on
                 print_if_verbose(
                     self.verbose,
                     "INFO",

@@ -94,6 +94,7 @@ def get_test_env():
     _behaviors.add("ChangingPH", ChangingPHBehavior())
     _behaviors.add("Cooling", CoolingBehavior())
 
+
     _parameters = {
         "ph": EntityParameter(7, None),
         "temperature": EntityParameter(2000, None),
@@ -103,15 +104,53 @@ def get_test_env():
     }
 
     _env = LaboratoryEnvironment(
-        _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=50
+        _parameters, _metal, _behaviors, _verbose=1, _sleep_ms=1000
     )
+
     return _env
+
+
+def test_02():
+    # Metal Parameters (Water)
+    # Environment Parameters
+    # Behavior
+    # Reaction
+
+    class WaterVolumeChange(Behavior):
+        def trigger(self):
+            self.env.metal.parameters['volume'].run("add", 5)
+            pass
+
+    class WaterVolumReact(Reaction):
+        def react(self, _metal):
+            if _metal.parameters['volume'].value >= 50:
+                self.print_event("[!] Volume is too high...")
+
+    _metal_parameters = {
+        "volume": EntityParameter(10, WaterVolumReact())
+    }
+
+    _environment_parameters = {}
+
+    _behaviors = Behaviors()
+    _behaviors.add("WaterVolumeChange", WaterVolumeChange())
+
+    _metal = Metal(_metal_parameters)
+
+    _env = LaboratoryEnvironment(
+        _environment_parameters, _metal, _behaviors, _verbose=1, _sleep_ms=100
+    )
+
+    _env.compile()
+    _env.simulate(20)
+
 
 
 def test_01():
     _env = get_test_env()
     _env.compile()
     _env.simulate(15)
+
 
 if __name__ == "__main__":
     # test_01_kafka()
@@ -121,3 +160,5 @@ if __name__ == "__main__":
     _env.attach_menu(lab_menu)
     _env.compile()
     lab_menu.run("quickstart-events", "localhost:9092")
+
+    #test_02()
